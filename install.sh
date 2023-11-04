@@ -30,6 +30,8 @@ function error_msg() {
     printf "${WARNING}%s${NC}\n" "An error occurred, this may be due to a compatibility issue with your linux distribution, or for another reason entirely."
     printf "${WARNING}%s${NC}\n" "If the error continues please consider creating an issue here:"
     printf "\t${INFO}%s${NC}\n" "$REPO_URL"
+    sleep 2
+    exit 1
 }
 
 function sudo_check() {
@@ -38,8 +40,6 @@ function sudo_check() {
     if [ $? -ne 0 ]; then
         printf "${WARNING}${BOLD}%s\n${RESET_ALL}" "Error: This script currently requires sudo privileges to install necessary APT packages."
         error_msg
-        sleep 4
-        exit 1
     fi
 }
 
@@ -126,13 +126,13 @@ function install_omz_plugins_and_themes() {
     clone_to_omz plugins https://github.com/zsh-users/zsh-syntax-highlighting.git
     clone_to_omz themes https://github.com/romkatv/powerlevel10k.git
     printf "${BLUE}${BOLD}%s${RESET_ALL}\n" "Finished installing omz plugins and themes."
-    sleep 2.5
+    sleep 2
     printf "\n${INFO}${BOLD}%s${RESET_ALL}\n" "My zautoload plugin is included, it can be used to automatically source certain files in your zsh directory."
     printf "${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "For it to autoload a file, it needs to be named like this:\n\`.p10k.zsh\` or \`.myzshfile.zsh\`."
     sleep 2
     printf "\n${INFO}${BOLD}%s${RESET_ALL}\n" "You can use the add2omz command to add more plugins and themes to your oh-my-zsh install"
     printf "${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "Usage: add2omz [--type type] [--url git-repo-url] [options]"
-    sleep 3
+    sleep 2
 }
 
 #! ============END==============
@@ -179,7 +179,6 @@ else
         done
     else
         error_msg
-        sleep 1 && exit
     fi
 fi
 
@@ -264,7 +263,7 @@ else
 fi
 
 #$ START TO COPY FILES FROM REPO TO INSTALL DIRECTORY
-cd "$CLONED_REPO" || exit
+cd "$CLONED_REPO" || error_msg
 # Check if the URL is SSH format (In case it's me running this script on one of my machines)
 if [[ "$(git config --get remote.origin.url)" == git@github.com:* ]]; then
     printf "${BLUE}${BOLD}%s${RESET_ALL}\n" "Hi Doc! Nice to see you!"
@@ -335,7 +334,6 @@ if [ ! -d "$INSTALL_DIRECTORY/.oh-my-zsh" ]; then
     else
         printf "oh-my-zsh is NOT in correct directory, something is wrong!\n"
         error_msg
-        exit
     fi
 else
     # INSTALL (or update) OMZ PLUGINS
@@ -483,35 +481,40 @@ if [ "$INSTALL_IS_HOME" != true ]; then
         esac
     done
 else
-    printf "%s\n" "Since we're using home directory for install, skipping alternate location setup."
+    printf "${INFO}%s${NC}\n" "Since we're using home directory for install, skipping alternate location setup."
 fi
 
 # Check if default shell is zsh
 if [[ "$DEFAULT_SHELL" != *"/zsh" ]]; then
-    # Change default shell to zsh & run omz update
-    printf "Default shell is NOT zsh\n"
-    printf "Sudo access may be needed to change default shell\n"
-    if chsh -s "$(which zsh)"; then
-        printf "Installation Successful, exit terminal and enter a new session\n"
-    else
-        error_msg
-    fi
+    # Ask user if they want to change default shell to zsh
+    while true; do
+        printf "${YELLOW}%s${NC}\n" "DEFEAULT SHELL IS NOT ZSH"
+        printf "${WARNING}%s${NC}\n" "Important: Sudo access may be needed to change default shell"
+        printf "${HIGHLIGHT}%s${NC}\n" "Change default shell to zsh? [Y/n]: "
+        read -r change_shell
+        case $change_shell in
+            [Yy]*)
+                printf "${INFO}%s${NC}\n" "Changing default shell to zsh"
+                if chsh -s "$(which zsh)"; then
+                    printf "${INFO}%s${NC}\n" "Installation Successful, exit terminal and enter a new session"
+                else
+                    error_msg
+                fi
+                break
+                ;;
+            [Nn]*)
+                printf "${INFO}%s${NC}\n" "Default shell will not be changed"
+                break
+                ;;
+            *)
+                continue
+                ;;
+        esac
+    done
 else
-    printf "${INFO}%s\n" "Default shell is already $(which zsh)"
-    printf "%s${NC}\n" "Install finished."
-#    printf "Updating oh-my-zsh\n" && sleep 1
-#    if $(which zsh) "$INSTALL_DIRECTORY/.oh-my-zsh/tools/upgrade.sh"; then
-#        printf "Installation Successful, exit terminal and enter a new session\n"
-#    else
-#        error_msg
-#    fi
+    printf "${INFO}%s${NC}\n" "Default shell is already $(which zsh)"
 fi
 
-# if [ ! "$INSTALL_IS_HOME" ]; then
-#     if [ -d ~/.zsh ] && [ ! -L ~/.zsh ]; then
-#         printf "%s\n" "Found ~/.zsh directory, moving to $INSTALL_DIRECTORY/.zsh"
-#         mv ~/.zsh "$INSTALL_DIRECTORY/.zsh"
-#     fi
-# fi
+printf "${HIGHLIGHT}%s${NC}\n" "Install finished."
 
 exit
