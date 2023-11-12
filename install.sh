@@ -127,8 +127,9 @@ function install_omz_plugins_and_themes() {
     clone_to_omz themes https://github.com/romkatv/powerlevel10k.git
     printf "${BLUE}${BOLD}%s${RESET_ALL}\n" "Finished installing omz plugins and themes."
     sleep 2
-    printf "\n${INFO}${BOLD}%s${RESET_ALL}\n" "My zautoload plugin is included, it can be used to automatically source certain files in your zsh directory."
-    printf "${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "For it to autoload a file, it needs to be named like this:\n\`.p10k.zsh\` or \`.myzshfile.zsh\`."
+    printf "\n${INFO}${BOLD}%s${RESET_ALL}\n" "You can use my zautoload plugin to automatically source certain files in your zsh directory."
+    printf "${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "For it to autoload a file, it needs to be named like this:"
+    printf "\t${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "\`.p10k.zsh\` or \`.myzshfile.zsh\`"
     sleep 2
     printf "\n${INFO}${BOLD}%s${RESET_ALL}\n" "You can use the add2omz command to add more plugins and themes to your oh-my-zsh install"
     printf "${HIGHLIGHT}${BOLD}%s${RESET_ALL}\n" "Usage: add2omz [--type type] [--url git-repo-url] [options]"
@@ -318,6 +319,7 @@ else
         printf "oh-my-zsh is not installed. Installing...\n" # OMZ not installed
         cd $INSTALL_DIRECTORY >/dev/null 2>&1
         ZDOTDIR=$INSTALL_DIRECTORY ZSH=$INSTALL_DIRECTORY/.oh-my-zsh sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+        mv .zshrc.pre-oh-my-zsh .zshrc
         printf "oh-my-zsh installed successfully.\n"
     fi
 fi
@@ -396,6 +398,21 @@ if [ "$INSTALL_IS_HOME" != true ]; then
         [ -e "~/.zshrc" ] && rm -f .zshrc
         [ -e "~/.zsh" ] && rm -rf .zsh
     fi
+
+    # List of common Zsh config files
+    config_files=( ".zshrc" ".zsh_history" ".zsh_profile" ".zlogin" ".zlogout" ".zcompdump*" )
+
+    # Directory to search in, defaults to the current user's home directory.
+    # Replace with another path if needed.
+    HOME_DIR="${HOME}"
+
+    # Loop through the list of config files and remove them
+    for file in "${config_files[@]}"; do
+    # Use find to locate the files and directories and remove them
+    find "$HOME_DIR" -name "$file" -exec rm -rv {} +
+    done
+
+    printf "${INFO}%s${NC}\n" "Zsh configuration files have been removed from $HOME_DIR"
 
     #* PARTIAL_DIRECTORY variable is used to get the relative path of the install directory from the user's home directory
     PARTIAL_DIRECTORY="${INSTALL_DIRECTORY#$HOME/}"
