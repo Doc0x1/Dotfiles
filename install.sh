@@ -319,7 +319,10 @@ else
         printf "oh-my-zsh is not installed. Installing...\n" # OMZ not installed
         cd $INSTALL_DIRECTORY >/dev/null 2>&1
         ZDOTDIR=$INSTALL_DIRECTORY ZSH=$INSTALL_DIRECTORY/.oh-my-zsh sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        mv .zshrc.pre-oh-my-zsh .zshrc
+        if [ -f "$INSTALL_DIRECTORY/.zshrc.pre-oh-my-zsh" ]; then
+            cp -f .zshrc
+            mv .zshrc.pre-oh-my-zsh .zshrc
+        fi
         printf "oh-my-zsh installed successfully.\n"
     fi
 fi
