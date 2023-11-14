@@ -296,15 +296,20 @@ find_and_do() {
 }
 
 add2path() {
+  local input_path="$1"
+  
   if [[ $# -eq 1 ]]; then
-    if [[ ! -e $1 ]]; then
+    # Expand potential environment variables for checking existence
+    local expanded_path=$(eval echo $input_path)
+    
+    if [[ ! -e $expanded_path ]]; then
       echo "The specified path does not exist. Exiting.\n"
       return 1
-    elif [[ ! -d $1 ]]; then
+    elif [[ ! -d $expanded_path ]]; then
       echo "The specified path is not a directory. Exiting.\n"
       return 1
     else
-      echo "Attempting to add $1 to PATH...\n"
+      echo "Attempting to add $input_path to PATH...\n"
     fi
 
     # Determine the location of .zshenv
@@ -322,16 +327,16 @@ add2path() {
     fi
 
     # Check if the path is already present in PATH
-    if [[ ":$PATH:" == *":$1:"* ]]; then
-      echo "Path $1 is already in PATH. Skipping.\n"
+    if [[ ":$PATH:" == *":$input_path:"* ]]; then
+      echo "Path $input_path is already in PATH. Skipping.\n"
       return 0
     fi
 
     # Update .zshenv
     local tmp_file=$(mktemp)
-    if sed -e "s|\(PATH=.*\):\$PATH|\1:$1:\$PATH|" $zenv > $tmp_file; then
+    if sed -e "s|\(PATH=.*\):\$PATH|\1:$input_path:\$PATH|" $zenv > $tmp_file; then
       mv $tmp_file $zenv
-      echo "Successfully added $1 to PATH in .zshenv.\n"
+      echo "Successfully added $input_path to PATH in .zshenv.\n"
     else
       echo "Failed to update .zshenv. Make sure you have write access to it.\n"
       rm -f $tmp_file
@@ -384,7 +389,7 @@ remove_path_duplicates() {
 
   # Update .zshenv
   local tmp_file=$(mktemp)
-  sed "s|^PATH=.*$|PATH=$new_path|" $zenv > $tmp_file
+  sed "s|^export PATH=.*$|export PATH=$new_path|" $zenv > $tmp_file
   if mv $tmp_file $zenv; then
     echo "Successfully removed duplicate entries from PATH in .zshenv.\n"
   else
