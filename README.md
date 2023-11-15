@@ -23,9 +23,7 @@ chmod +x install.sh
 
 ## The install script in particular is designed for Debian based distributions with the apt package manager, and it is not guaranteed to work on other distributions
 
-### If you have any problems, feel free to open up an issue, or check out my slimmed-down repository for my base configuration
-
-#### [Setup-P10k-Zsh](https://github.com/Doc0x1/Setup-P10k-Zsh)
+### If you have any problems, feel free to open up an issue.
 
 ---
 
