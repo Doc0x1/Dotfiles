@@ -320,7 +320,7 @@ else
         cd $INSTALL_DIRECTORY >/dev/null 2>&1
         ZDOTDIR=$INSTALL_DIRECTORY ZSH=$INSTALL_DIRECTORY/.oh-my-zsh sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
         if [ -f "$INSTALL_DIRECTORY/.zshrc.pre-oh-my-zsh" ]; then
-            cp -f .zshrc
+            cp -f .zshrc .
             mv .zshrc.pre-oh-my-zsh .zshrc
         fi
         printf "oh-my-zsh installed successfully.\n"
