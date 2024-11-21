@@ -136,6 +136,31 @@ function install_omz_plugins_and_themes() {
     sleep 2
 }
 
+function copy_to_install_dir() {
+    EXCLUDE=("LICENSE" "install.sh" ".gitignore" "README.md")
+
+    find "$CLONED_REPO/." -maxdepth 1 -type f | while read -r i; do
+        filename=$(basename -- "$i")
+
+        if [[ ! " ${EXCLUDE[@]} " =~ " ${filename} " ]]; then
+            abs_path=$(realpath "$i") # Getting the absolute path
+            if [ "$is_ssh" = true ]; then
+                if [ -e $INSTALL_DIRECTORY/$filename ]; then
+                    printf "\n%s\n" "File $INSTALL_DIRECTORY/$filename already exists, skipping..."
+                    continue
+                fi
+                printf "\n%s\n" "Creating symbolic link from $abs_path to $INSTALL_DIRECTORY/$filename"
+                ln -s "$abs_path" "$INSTALL_DIRECTORY/$filename"
+            else
+                printf "\n%s\n" "Copying $abs_path to $INSTALL_DIRECTORY"
+                cp -fv "$abs_path" "$INSTALL_DIRECTORY"
+            fi
+        fi
+    done
+
+    printf "${INFO}%s${NC}\n" "Finished copying repo files to $INSTALL_DIRECTORY" && sleep 1
+}
+
 #! ============END==============
 
 #! ============BEGIN============
@@ -278,29 +303,6 @@ else
     is_ssh=false
 fi
 
-EXCLUDE=("LICENSE" "install.sh" ".gitignore" "README.md")
-
-find "$CLONED_REPO/." -maxdepth 1 -type f | while read -r i; do
-    filename=$(basename -- "$i")
-
-    if [[ ! " ${EXCLUDE[@]} " =~ " ${filename} " ]]; then
-        abs_path=$(realpath "$i") # Getting the absolute path
-        if [ "$is_ssh" = true ]; then
-            if [ -e $INSTALL_DIRECTORY/$filename ]; then
-                printf "\n%s\n" "File $INSTALL_DIRECTORY/$filename already exists, skipping..."
-                continue
-            fi
-            printf "\n%s\n" "Creating symbolic link from $abs_path to $INSTALL_DIRECTORY/$filename"
-            ln -s "$abs_path" "$INSTALL_DIRECTORY/$filename"
-        else
-            printf "\n%s\n" "Copying $abs_path to $INSTALL_DIRECTORY"
-            cp -fv "$abs_path" "$INSTALL_DIRECTORY"
-        fi
-    fi
-done
-
-printf "${INFO}%s${NC}\n" "Finished copying repo files to $INSTALL_DIRECTORY" && sleep 1
-
 # Oh-My-ZSH INSTALL
 printf "\n%s\n" "Installing oh-my-zsh into $INSTALL_DIRECTORY" && sleep 1
 ZDOTDIR="$INSTALL_DIRECTORY"
@@ -319,13 +321,16 @@ else
         printf "oh-my-zsh is not installed. Installing...\n" # OMZ not installed
         cd $INSTALL_DIRECTORY >/dev/null 2>&1
         ZDOTDIR=$INSTALL_DIRECTORY ZSH=$INSTALL_DIRECTORY/.oh-my-zsh sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-        if [ -f "$INSTALL_DIRECTORY/.zshrc.pre-oh-my-zsh" ]; then
-            cp -f .zshrc $INSTALL_DIRECTORY/.
-            mv .zshrc.pre-oh-my-zsh .zshrc
+        if [ -f "$INSTALL_DIRECTORY/.zshrc" ]; then
+            mv .zshrc .zshrc.post-oh-my-zsh
         fi
         printf "oh-my-zsh installed successfully.\n"
     fi
 fi
+
+cd - >/dev/null 2>&1
+
+copy_to_install_dir
 
 printf "\n%+50s\n\n" "READY TO INSTALL OhMyZSH PLUGINS" && sleep 1
 
