@@ -148,7 +148,7 @@ permissioncheck() {
   echo "=================================="
 }
 
-mkpythonvenv() {
+pyvenv() {
   if [[ $# -eq 0 ]]; then
     if [[ -d "./venv" ]]; then
       printf "venv directory already exists. Will source it...\n" && sleep 1
@@ -298,103 +298,132 @@ find_and_do() {
 add2path() {
   local input_path="$1"
   
-  if [[ $# -eq 1 ]]; then
-    # Expand potential environment variables for checking existence
-    local expanded_path=$(eval echo $input_path)
-    
-    if [[ ! -e $expanded_path ]]; then
-      echo "The specified path does not exist. Exiting.\n"
-      return 1
-    elif [[ ! -d $expanded_path ]]; then
-      echo "The specified path is not a directory. Exiting.\n"
-      return 1
-    else
-      echo "Attempting to add $input_path to PATH...\n"
-    fi
-
-    # Determine the location of .zshenv
-    local zenv
-    if [[ -z $ZDOTDIR ]]; then
-      zenv="~/.zshenv"
-    else
-      zenv="$ZDOTDIR/.zshenv"
-    fi
-
-    # Check if .zshenv exists
-    if [[ ! -f $zenv ]]; then
-      echo "No .zshenv file found. Exiting.\n"
-      return 1
-    fi
-
-    # Check if the path is already present in PATH
-    if [[ ":$PATH:" == *":$input_path:"* ]]; then
-      echo "Path $input_path is already in PATH. Skipping.\n"
-      return 0
-    fi
-
-    # Update .zshenv
-    local tmp_file=$(mktemp)
-    if sed -e "s|\(PATH=.*\):\$PATH|\1:$input_path:\$PATH|" $zenv > $tmp_file; then
-      mv $tmp_file $zenv
-      echo "Successfully added $input_path to PATH in .zshenv.\n"
-    else
-      echo "Failed to update .zshenv. Make sure you have write access to it.\n"
-      rm -f $tmp_file
-      return 1
-    fi
-  else
-    echo "Invalid input. Please specify a single, valid directory path to add to PATH.\n"
+  if [[ $# -ne 1 ]]; then
+    echo "Invalid input. Please specify a single, valid directory path to add."
     return 1
   fi
-}
 
-remove_path_duplicates() {
+  # Expand potential environment variables in the input path
+  local expanded_path
+  expanded_path=$(eval echo "$input_path")
+
+  # Check if the path exists and is a directory
+  if [[ ! -e "$expanded_path" ]]; then
+    echo "The specified path does not exist. Exiting."
+    return 1
+  elif [[ ! -d "$expanded_path" ]]; then
+    echo "The specified path is not a directory. Exiting."
+    return 1
+  fi
+
   # Determine the location of .zshenv
   local zenv
   if [[ -z $ZDOTDIR ]]; then
-    zenv="~/.zshenv"
+    zenv="$HOME/.zshenv"
   else
     zenv="$ZDOTDIR/.zshenv"
   fi
 
   # Check if .zshenv exists
-  if [[ ! -f $zenv ]]; then
-    echo "No .zshenv file found. Exiting.\n"
+  if [[ ! -f "$zenv" ]]; then
+    echo "No .zshenv file found. Exiting."
     return 1
   fi
 
-  # Extract the current PATH from .zshenv
-  local current_path=$(grep '^PATH=' $zenv | sed 's/^PATH=//')
-
-  if [[ -z $current_path ]]; then
-    echo "No PATH variable found in .zshenv. Exiting.\n"
-    return 1
+  # Check if the path is already in the directories=() array
+  if grep -qF "\"$input_path\"" "$zenv"; then
+    echo "Path $input_path is already in the directories array. Skipping."
+    return 0
   fi
 
-  # Remove duplicate entries
-  local seen=""
-  local new_path=""
-  local separator=":"
-  IFS="$separator"
-  for dir in $current_path; do
-    if [[ ! $seen == *"$separator$dir$separator"* ]]; then
-      if [[ -n $new_path ]]; then
-        new_path="$new_path$separator"
-      fi
-      new_path="$new_path$dir"
-      seen="$seen$separator$dir$separator"
-    fi
-  done
-  unset IFS
+  # Ask for confirmation before adding
+  printf "Do you want to add %s to your PATH in .zshenv?\n" "$input_path"
+  read -r "yn?[Y/n]: "
 
-  # Update .zshenv
-  local tmp_file=$(mktemp)
-  sed "s|^export PATH=.*$|export PATH=$new_path|" $zenv > $tmp_file
-  if mv $tmp_file $zenv; then
-    echo "Successfully removed duplicate entries from PATH in .zshenv.\n"
+  case $yn in
+    [Yy]*|"") ;; # Continue if user says yes or presses enter
+    [Nn]*) 
+      printf "Aborted. No changes made.\n"
+      return 0
+      ;;
+    *)
+      printf "Invalid response. Aborting.\n"
+      return 1
+      ;;
+  esac
+
+  # Add the path to the end of the directories=() array in .zshenv
+  local tmp_file
+  tmp_file=$(mktemp)
+  if awk -v new_path="$input_path" '
+    BEGIN { in_directories = 0 }
+    /^directories=\(/ { 
+      print; 
+      in_directories = 1; 
+      next 
+    } 
+    /^\)/ && in_directories { 
+      printf "    \"%s\"\n", new_path; 
+      in_directories = 0 
+    } 
+    { print }
+  ' "$zenv" > "$tmp_file"; then
+    mv -f "$tmp_file" "$zenv"
+    echo "Successfully added $input_path to directories in .zshenv."
   else
-    echo "Failed to update .zshenv. Make sure you have write access to it.\n"
-    rm -f $tmp_file
+    echo "Failed to update .zshenv. Make sure you have write access to it."
+    rm -f "$tmp_file"
     return 1
   fi
 }
+
+# remove_path_duplicates() {
+#   # Determine the location of .zshenv
+#   local zenv
+#   if [[ -z $ZDOTDIR ]]; then
+#     zenv="~/.zshenv"
+#   else
+#     zenv="$ZDOTDIR/.zshenv"
+#   fi
+
+#   # Check if .zshenv exists
+#   if [[ ! -f $zenv ]]; then
+#     echo "No .zshenv file found. Exiting.\n"
+#     return 1
+#   fi
+
+#   # Extract the current PATH from .zshenv
+#   local current_path=$(grep '^PATH=' $zenv | sed 's/^PATH=//')
+
+#   if [[ -z $current_path ]]; then
+#     echo "No PATH variable found in .zshenv. Exiting.\n"
+#     return 1
+#   fi
+
+#   # Remove duplicate entries
+#   local seen=""
+#   local new_path=""
+#   local separator=":"
+#   IFS="$separator"
+#   for dir in $current_path; do
+#     if [[ ! $seen == *"$separator$dir$separator"* ]]; then
+#       if [[ -n $new_path ]]; then
+#         new_path="$new_path$separator"
+#       fi
+#       new_path="$new_path$dir"
+#       seen="$seen$separator$dir$separator"
+#     fi
+#   done
+#   unset IFS
+
+#   # Update .zshenv
+#   local tmp_file=$(mktemp)
+#   sed "s|^export PATH=.*$|export PATH=$new_path|" $zenv > $tmp_file
+#   if mv $tmp_file $zenv; then
+#     echo "Successfully removed duplicate entries from PATH in .zshenv.\n"
+#   else
+#     echo "Failed to update .zshenv. Make sure you have write access to it.\n"
+#     rm -f $tmp_file
+#     return 1
+#   fi
+# }

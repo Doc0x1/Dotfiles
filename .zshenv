@@ -8,4 +8,40 @@
 # custom environment in such cases.  Note also that .zshenv should not contain
 # commands that produce output or assume the shell is attached to a tty.
 
-export PATH=/snap/bin:/usr/sandbox/:/usr/local/bin:/usr/bin:/usr/local/games:/usr/games:/usr/share/games:/usr/local/sbin:/usr/sbin:/sbin:~/.config/composer/vendor/bin:/usr/local/go/bin:~/.local/bin:~/go/bin:/bin:~/.nimble/bin:$PATH
+# List of directories for PATH: defaults first, then conditional directories
+directories=(
+    # Default directories (always included)
+    "/usr/bin"
+    "/usr/local/bin"
+    "/usr/local/games"
+    "/usr/games"
+    "/usr/share/games"
+    "/usr/local/sbin"
+    "/usr/sbin"
+    "/sbin"
+    "/bin"
+    
+    # Custom directories (include these if needed)
+    "/snap/bin"
+    "/usr/sandbox"
+    "~/.config/composer/vendor/bin"
+    "/usr/local/go/bin"
+    "~/.local/bin"
+    "~/go/bin"
+    "~/.nimble/bin"
+)
+
+# Use an associative array to avoid duplicates
+typeset -A unique_dirs
+final_path=""
+
+for dir in "${directories[@]}"; do
+    # Only add existing directories and prevent duplicates
+    if [[ -d "$dir" && -z ${unique_dirs["$dir"]} ]]; then
+        unique_dirs["$dir"]=1
+        final_path="$final_path:$dir"
+    fi
+done
+
+# Export the constructed PATH (remove leading colon)
+export PATH="${final_path#:}"

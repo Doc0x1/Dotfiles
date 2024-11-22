@@ -8,6 +8,7 @@ alias e='echo'
 alias m='mark'
 alias own='sudo chown -v $USER:$USER'
 alias owndir='sudo chown -R $USER:$USER'
+
 # copy, symlinks
 alias cpd='cp -r'
 alias cpd-ffs='sudo cp -r'
@@ -25,6 +26,7 @@ if (( $+commands[python] )); then
 	alias manage-py='python -m manage.py'
 	alias py-pip='python -m pip'
 	alias py-pip-i='python -m pip install'
+	alias py-httpserver='python -m http.server'
 fi
 
 # apt/apt-get
@@ -61,6 +63,9 @@ if (( $+commands[git] )); then
 	alias gco='git checkout'
 	alias gsw='git switch'
 	alias gb='git branch'
+	alias guncommitsoft='git reset --soft HEAD~1'
+	alias guncommithard='git reset --hard HEAD~1'
+	alias glgraph='git log --graph'
 fi
 
 # docker aliases
@@ -70,27 +75,20 @@ if (( $+commands[docker] )); then
 	alias docker-ip="docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"
 fi
 
-# ip info aliases and other system aliases
+# Time, IP and systemd/systemctl aliases etc.
 alias sync-time='sudo ntpd ntp.ubuntu.com'
 alias extip='curl https://ipecho.net/plain; echo'
 alias intip='hostname -I; echo'
+alias gettun0='ifconfig | grep -i -A 10 tun0'
+alias tunip="ifconfig | grep -i -A 1 tun0 | tail -n 1 | awk ' { print \$2 }'"
 alias shutdown='sudo shutdown now'
 alias sctl='sudo systemctl'
 alias sd='sudo systemd'
-alias art='artisan'
-alias prisma='npx prisma'
-alias sail-start="sail up -d && npm run watch"
 
-# grep aliases
+# Grep aliases
 alias grepa='grep -i -A'
 alias grepb='grep -i -B'
 alias grepc='grep -i -C'
-alias gettun0='ifconfig | grep -i -A 10 tun0'
-alias tunip="ifconfig | grep -i -A 1 tun0 | tail -n 1 | awk ' { print \$2 }'"
-alias startezdiff="cd ~/Documents/easy-diffusion && ./start.sh"
 
+# Misc
 alias printlines="printf '\n%.0s' {1..100}"
-
-if [ -d "$HOME/Documents/easy-diffusion" ]; then
-	alias startezdiff="cd ~/Documents/easy-diffusion && ./start.sh"
-fi
