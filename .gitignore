@@ -1,0 +1,6 @@
+ignored/
+.oh-my-zsh/
+.zsh_history
+.zcompdump*
+*.zwc
+.fortdoc
